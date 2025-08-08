@@ -1,0 +1,558 @@
+#
+# Copyright (c) 2025 broomd0g <broomd0g@wreckinglabs.org>
+#
+# This software is released under the MIT License.
+# See the LICENSE file for more details.
+
+"""
+TODO
+"""
+
+from . import lddtree
+from . import TMP_DIR
+
+import argparse
+import git
+import io
+import os
+import pyghidra
+import shutil
+import subprocess
+import sys
+import time
+
+from contextlib import contextmanager
+from importlib.metadata import metadata
+from pathlib import Path
+from rich.console import Console, Group
+from rich.live import Live
+from rich.panel import Panel
+from rich.progress import Progress, TextColumn, BarColumn, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
+from rich.status import Status
+from typing import Dict, List, Optional
+
+
+EX_DATAERR = 65
+EX_NOINPUT = 66
+EX_UNAVAILABLE = 69
+EX_SOFTWARE = 70
+EX_CANTCREAT = 73
+EX_IOERR = 74
+
+
+console = Console(file=sys.__stdout__, log_path=False)
+
+
+def SetupDecompiler(program):
+    from ghidra.app.decompiler import DecompInterface
+
+    decomp = DecompInterface()
+    decomp.openProgram(program)
+
+    return decomp
+
+
+def DecompileFunction(function, decompiler, timeout: int = 0, monitor=None) -> List:
+    from ghidra.util.task import ConsoleTaskMonitor
+
+    if monitor is None:
+        monitor = ConsoleTaskMonitor()
+
+    result = decompiler.decompileFunction(function, timeout, monitor)
+
+    if "" == result.getErrorMessage():
+        code = result.decompiledFunction.getC()
+        signature = result.decompiledFunction.getSignature()
+    else:
+        code = result.getErrorMessage()
+        signature = None
+
+    return [function, signature, code, f"{function.getEntryPoint()}.c", f"{function.getEntryPoint()}::{function}.c"]
+
+
+def SetFunctionComment(function, comment, listing):
+    from ghidra.program.model.listing import CodeUnit
+
+    listing.setComment(function.getEntryPoint(),
+                       CodeUnit.PLATE_COMMENT, comment)
+
+
+def GetParser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    pkg_meta = metadata("dragonkick")
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"dragonkick v{pkg_meta['Version']} by {pkg_meta['Author']} <{pkg_meta['Author-email']}>",
+        help="show version information",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="print verbose information messages",
+    )
+
+    parser.add_argument("targets", nargs="+")
+
+    project_group = parser.add_argument_group("Project options")
+
+    project_group.add_argument(
+        "-c",
+        "--copy-to-project",
+        action="store_true",
+        default=False,
+        help="copy original targets/dependencies into the project tree",
+    )
+
+    project_group.add_argument(
+        "-F",
+        "--force-remove",
+        action="store_true",
+        default=False,
+        help="remove the existing project before proceeding",
+    )
+
+    project_group.add_argument(
+        "-f",
+        "--force-import",
+        action="store_true",
+        default=False,
+        help="force re-import when the project already exists",
+    )
+
+    project_group.add_argument(
+        "-n",
+        "--project-name",
+        required=True,
+        help="Ghidra project name",
+    )
+
+    project_group.add_argument(
+        "-o",
+        "--project-dir",
+        action=lddtree._NormalizePathAction,
+        type=Path,
+        required=True,
+        help="project output directory",
+    )
+
+    project_group.add_argument(
+        "-r",
+        "--remove-existing-binaries",
+        action="store_true",
+        default=False,
+        help="remove the previously copied targets/dependencies from the project tree",
+    )
+
+    project_group.add_argument(
+        "-s",
+        "--start-ghidra",
+        action="store_true",
+        default=False,
+        help="open project in Ghidra after kickstart",
+    )
+
+    analysis_group = parser.add_argument_group("Analysis options")
+
+    analysis_group.add_argument(
+        "--skip-dependency-import",
+        action="store_true",
+        default=False,
+        help="skip importing shared object dependencies into project",
+    )
+
+    analysis_group.add_argument(
+        "--skip-target-analysis",
+        action="store_true",
+        default=False,
+        help="skip auto-analyzing the targets",
+    )
+
+    analysis_group.add_argument(
+        "-a",
+        "--do-dependency-analysis",
+        action="store_true",
+        default=False,
+        help="peform shared object dependencies analysis",
+    )
+
+    analysis_group.add_argument(
+        "-d",
+        "--do-target-decompilation",
+        action="store_true",
+        default=False,
+        help="decompile and export functions code under project tree",
+    )
+
+    path_group = parser.add_argument_group("Path options")
+    path_group.add_argument(
+        "-R",
+        "--sysroot",
+        action=lddtree._NormalizePathAction,
+        default="/",
+        type=Path,
+        help="search for all targets/dependencies under SYSROOT",
+    )
+
+    path_group.add_argument(
+        "-G",
+        "--ghidra-install-dir",
+        action=lddtree._NormalizePathAction,
+        default=None,
+        type=Path,
+        help="Ghidra installation directory",
+    )
+
+    return parser
+
+
+@contextmanager
+def capture_ghidra_output():
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    captured_output = io.StringIO()
+
+    try:
+        sys.stdout = captured_output
+        sys.stderr = captured_output
+        yield
+    finally:
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+
+        output = captured_output.getvalue()
+        if output:
+            console.rule("[bold red]Captured PyGhidra Output[/]")
+            console.log(output.strip())
+            console.rule()
+
+
+@contextmanager
+def capture_lddtree_output():
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    captured_output = io.StringIO()
+    prefix = "dragonkick: "
+
+    try:
+        sys.stdout = captured_output
+        sys.stderr = captured_output
+        yield
+    finally:
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+
+        output = captured_output.getvalue()
+        if output:
+            output = output.replace(prefix, "").strip()
+            console.rule("[bold red]Captured lddtree Output[/]")
+            console.log(output)
+            console.rule()
+
+
+def log_error(message):
+    console.log(f"[bold red]ERROR:[/] {message}")
+
+
+def main() -> Optional[int]:
+    parser = GetParser()
+    options = parser.parse_args(sys.argv[1:])
+
+    sysroot = Path(options.sysroot)
+
+    if not sysroot.exists():
+        log_error(f"{sysroot} does not exists")
+        return EX_NOINPUT
+
+    project_dir = Path(options.project_dir)
+
+    if options.copy_to_project:
+        ldd_dir = project_dir
+        target_dir = ldd_dir / "target"
+        lib_dir = ldd_dir / "lib"
+    else:
+        ldd_dir = TMP_DIR
+        target_dir = ldd_dir / "target"
+        lib_dir = ldd_dir / "lib"
+
+    src_dir = project_dir / "src"
+
+    ghidra_project = project_dir / options.project_name / \
+        f"{options.project_name}.gpr"
+
+    if options.ghidra_install_dir is not None:
+        os.environ["GHIDRA_INSTALL_DIR"] = str(options.ghidra_install_dir)
+        ghidra_install_dir = options.ghidra_install_dir
+    else:
+        ghidra_install_dir = Path(os.environ.get(
+            "GHIDRA_INSTALL_DIR", "/opt/ghidra"))
+        os.environ["GHIDRA_INSTALL_DIR"] = str(ghidra_install_dir)
+
+    with console.status(f"[bold][green]:dragon: Starting PyGhidra from {ghidra_install_dir} :dragon:") as status:
+        with capture_ghidra_output():
+            try:
+                pyghidra.start()
+            except ValueError:
+                log_error(f"Starting Ghidra from {ghidra_install_dir}")
+                return EX_UNAVAILABLE
+            except Exception:
+                log_error(f"Starting Ghidra from {ghidra_install_dir}")
+                return EX_SOFTWARE
+
+    if pyghidra.started():
+        console.log("PyGhidra started")
+
+        if project_dir.exists() and options.force_remove:
+            console.log(f"Removing existing project [red]'{project_dir}'")
+            shutil.rmtree(project_dir)
+
+        if ghidra_project.exists() and not options.force_import:
+            log_error(
+                f"Ghidra project {ghidra_project} already exists, use '-f' to force re-importing binaries")
+            return EX_CANTCREAT
+
+        console.log(
+            f"Setting up project '{options.project_name}' in '{project_dir}'")
+        project_dir.mkdir(exist_ok=True)
+        target_dir.mkdir(exist_ok=True)
+        lib_dir.mkdir(exist_ok=True)
+        src_dir.mkdir(exist_ok=True)
+
+        console.log(f"Using sysroot '{options.sysroot}'")
+
+        if options.remove_existing_binaries:
+            deps = [x for x in lib_dir.iterdir() if x.is_file()]
+            targets = [x for x in target_dir.iterdir() if x.is_file()]
+
+            if len(deps) or len(targets):
+                console.log(f"[red]Removing existing binaries from project")
+
+            for lib in lib_dir.iterdir():
+                if lib.is_file():
+                    lib.unlink()
+                    if options.verbose:
+                        console.log(
+                            f"Removed previous dependency [red]'{lib}'[/red]")
+
+            for target in target_dir.iterdir():
+                if target.is_file():
+                    target.unlink()
+                    if options.verbose:
+                        console.log(
+                            f"Removed previous target [red]'{target}'[/red]")
+
+        if not options.skip_dependency_import:
+            console.log(
+                f"Resolving dependencies for targets {options.targets}")
+
+        with capture_lddtree_output():
+            lddtree_args = ["-R", str(sysroot), "--copy-to-tree",
+                            str(ldd_dir), "--bindir", "/target", "--libdir", "/lib"]
+            lddtree_args.extend(options.targets)
+            try:
+                lddtree.main(lddtree_args)
+            except Exception:
+                log_error(f"Unknown exception from lddtree")
+                return EX_SOFTWARE
+
+        deps = [x for x in lib_dir.iterdir() if x.is_file()]
+        targets = [x for x in target_dir.iterdir() if x.is_file()]
+
+        if options.copy_to_project:
+            console.log(f"Saving binaries under project tree")
+
+        if options.skip_dependency_import:
+            console.log(f"Not importing any target dependencies")
+        else:
+            console.log(f"Importing {len(deps)} shared object dependencies")
+            if options.verbose:
+                for lib in lib_dir.iterdir():
+                    if lib.is_file():
+                        console.log(f"Importing dependency '{lib}'")
+
+        console.log(f"Importing {len(targets)} primary targets")
+        if options.verbose:
+            for target in target_dir.iterdir():
+                if target.is_file():
+                    console.log(f"Importing target '{target}'")
+
+        if not targets:
+            log_error(f"No primary target to import")
+            return EX_NOINPUT
+
+        if not options.skip_dependency_import and deps:
+            progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                MofNCompleteColumn(),
+                TimeElapsedColumn(),
+            )
+            status = Status("Importing dependencies...")
+            live_group = Group(Panel(progress), Panel(status))
+
+            with Live(live_group, refresh_per_second=10) as live:
+                task = progress.add_task(
+                    "[green]Importing dependencies...", total=len(deps))
+                for dep in deps:
+                    if options.do_dependency_analysis:
+                        status.update(
+                            f"[green]:dragon: Analyzing [bold]{dep.name}[/bold] :dragon:")
+                    else:
+                        status.update(
+                            f"[green]Importing [bold]{dep.name}[/bold]")
+
+                    with pyghidra.open_program(dep, analyze=options.do_dependency_analysis, project_location=project_dir, project_name=options.project_name, nested_project_location=True) as flat_api:
+                        from ghidra.program.util import GhidraProgramUtilities
+                        program = flat_api.getCurrentProgram()
+
+                        if options.do_dependency_analysis:
+                            status.update(
+                                f"[green]:dragon: Analysis of [bold]{dep.name}[/bold] complete :dragon:")
+                        else:
+                            status.update(
+                                f"[green]Imported [bold]{dep.name}[/bold], creation_date={program.getCreationDate()}, language_id={program.getLanguageID()}")
+
+                        progress.update(
+                            task, description=f"[green]Imported [bold]{dep.name}[/bold]")
+
+                    progress.update(task, advance=1)
+
+                progress.update(
+                    task, description=f"[green]Dependencies import complete")
+                progress.stop()
+                status.update(f"[green]All dependencies imported!")
+                status.stop()
+                live.refresh()
+
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+        )
+        progress_panel = Panel(progress)
+
+        status = Status("Importing targets...")
+        status_panel = Panel(status)
+
+        live_group = Group(progress_panel, status_panel)
+
+        with Live(live_group, refresh_per_second=10) as live:
+            task = progress.add_task(
+                "[green]Importing targets...", total=len(targets))
+            for target in targets:
+
+                if options.skip_target_analysis:
+                    analyze_target = False
+                    status.update(
+                        f"[green]Importing [bold]{target.name}[/bold]")
+                else:
+                    analyze_target = True
+                    status.update(
+                        f"[green]:dragon: Analyzing [bold]{target.name}[/bold] :dragon:")
+
+                with pyghidra.open_program(target, analyze=analyze_target, project_location=project_dir, project_name=options.project_name, nested_project_location=True) as flat_api:
+                    from ghidra.program.util import GhidraProgramUtilities
+
+                    progress.update(
+                        task, description=f"[green]Imported [bold]{target.name}[/bold]")
+
+                    if analyze_target:
+                        status.update(
+                            f"[green]:dragon: Analysis of [bold]{target.name}[/bold] complete :dragon:")
+                    else:
+                        status.update(
+                            f"[green]Imported [bold]{target.name}[/bold], creation_date={program.getCreationDate()}, language_id={program.getLanguageID()}")
+
+                    progress.update(task, advance=1)
+
+                    program = flat_api.getCurrentProgram()
+
+                    if options.do_target_decompilation:
+                        function_manager = program.getFunctionManager()
+                        functions = [
+                            x for x in function_manager.getFunctionsNoStubs(True)]
+
+                        decompiler = SetupDecompiler(program)
+
+                        target_src = src_dir / target.name
+                        target_src.mkdir(parents=True, exist_ok=True)
+                        target_repo = git.Repo.init(target_src)
+
+                        for x in target_src.iterdir():
+                            if x.is_symlink():
+                                x.unlink()
+
+                        status.stop()
+                        decomp_progress = Progress(
+                            SpinnerColumn(),
+                            TextColumn(
+                                "[progress.description]{task.description}"),
+                            BarColumn(),
+                            MofNCompleteColumn(),
+                            TimeElapsedColumn(),
+                        )
+                        status_panel.renderable = decomp_progress
+
+                        decomp_task = decomp_progress.add_task(
+                            "[green]Decompiling functions...", total=len(functions))
+                        for f in functions:
+                            if not f.isThunk():
+                                function, signature, code, filename, symlink = DecompileFunction(
+                                    f, decompiler)
+                                decomp_progress.update(
+                                    task, description=f"[green]Decompiled [bold]{f.getName()}[/bold]")
+
+                                if signature is not None:
+                                    function_src = target_src / filename
+                                    function_src.open("w").write(code)
+                                    function_link = target_src / symlink
+                                    function_link.symlink_to(function_src)
+                            else:
+                                decomp_progress.update(
+                                    task, description=f"[green]Skipping thunk [bold]{f.getName()}[/bold]")
+
+                            decomp_progress.update(task, advance=1)
+
+                        decomp_progress.update(
+                            task, description=f"[green]Decompilation complete")
+                        decomp_progress.stop()
+
+                        target_repo.git.add(all=True)
+                        target_repo.index.commit("Decompiled source refresh")
+
+                        decompiler.dispose()
+
+                    status_panel.renderable = status
+
+            progress.update(
+                task, description=f"[green]Targets import complete")
+            progress.stop()
+            status.update(f"[green]All targets imported!")
+            status.stop()
+            live.refresh()
+
+        if ghidra_project.exists():
+            console.log(
+                f":dragon: The project is ready to be opened in Ghidra with '{ghidra_project}' :dragon:")
+        else:
+            log_error(f"Ghidra project {ghidra_project} not found")
+            return EX_UNAVAILABLE
+
+        if options.start_ghidra:
+            subprocess.run([ghidra_install_dir / "ghidraRun", ghidra_project])
+
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
