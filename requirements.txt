@@ -1,3 +1,4 @@
+elftools
 gitpython
 pyghidra
 rich
