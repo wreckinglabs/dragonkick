@@ -5,7 +5,7 @@
 # See the LICENSE file for more details.
 
 """
-TODO
+A simple colorful tool to kickstart Ghidra projects from the command line.
 """
 
 from . import lddtree
