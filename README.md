@@ -8,7 +8,7 @@ Tired of the tedious, click-heavy setup for a new Ghidra project? `dragonkick` i
 ---
 ## Install
 ```
-pip install git+https://github.com/wreckinglabs/dragonkick
+pipx install git+https://github.com/wreckinglabs/dragonkick
 ```
 
 ---
@@ -29,4 +29,5 @@ pip install git+https://github.com/wreckinglabs/dragonkick
 - Allow running other Ghidra scripts with the analysis
 - Support for non-ELF binaries
 - Better decompiled code source management (e.g. tracking function rename/retype etc.)
+
 
