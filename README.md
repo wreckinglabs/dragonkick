@@ -13,7 +13,8 @@ pipx install git+https://github.com/wreckinglabs/dragonkick
 
 ---
 ## Requirements
-- A copy of Ghidra 12.0 or later installed
+- A copy of [Ghidra 11.3](https://github.com/NationalSecurityAgency/ghidra/releases) or later installed
+- Set the `GHIDRA_INSTALL_DIR` environment variable to point to the directory where Ghidra is installed or use the `dragonkick -G` option
 
 ---
 ## Demo
@@ -29,6 +30,7 @@ pipx install git+https://github.com/wreckinglabs/dragonkick
 - Allow running other Ghidra scripts with the analysis
 - Support for non-ELF binaries
 - Better decompiled code source management (e.g. tracking function rename/retype etc.)
+
 
 
 
