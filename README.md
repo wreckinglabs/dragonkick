@@ -9,3 +9,9 @@ pip install git+https://github.com/wreckinglabs/dragonkick
 ---
 ## Demo
 [![asciicast](https://asciinema.org/a/qmci5rrWoI8a11UpS8qepcRvh.svg)](https://asciinema.org/a/qmci5rrWoI8a11UpS8qepcRvh)
+
+---
+## TODOs
+- Allow running other Ghidra scripts with the analysis
+- Support for non-ELF binaries
+- Better decompiled code source management (e.g. tracking function rename/retype etc.)
