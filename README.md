@@ -16,7 +16,7 @@ pip install git+https://github.com/wreckinglabs/dragonkick
 
 ---
 ## TODOs
+- Tag & publish v0.1.0 to PyPI
 - Allow running other Ghidra scripts with the analysis
 - Support for non-ELF binaries
 - Better decompiled code source management (e.g. tracking function rename/retype etc.)
-
