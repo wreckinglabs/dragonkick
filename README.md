@@ -10,9 +10,18 @@ Tired of the tedious, click-heavy setup for a new Ghidra project? `dragonkick` i
 ```
 pip install git+https://github.com/wreckinglabs/dragonkick
 ```
+
+---
+## Requirements
+- A copy of Ghidra 12.0 or later installed
+
 ---
 ## Demo
 [![asciicast](https://asciinema.org/a/qmci5rrWoI8a11UpS8qepcRvh.svg)](https://asciinema.org/a/qmci5rrWoI8a11UpS8qepcRvh)
+
+## Requirements
+- https://github.com/NationalSecurityAgency/ghidra/blob/master/Ghidra/Features/PyGhidra/src/main/py/README.md
+- https://github.com/gentoo/pax-utils/blob/master/lddtree.py
 
 ---
 ## TODOs
@@ -20,3 +29,4 @@ pip install git+https://github.com/wreckinglabs/dragonkick
 - Allow running other Ghidra scripts with the analysis
 - Support for non-ELF binaries
 - Better decompiled code source management (e.g. tracking function rename/retype etc.)
+
