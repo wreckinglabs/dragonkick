@@ -18,7 +18,7 @@ pipx install git+https://github.com/wreckinglabs/dragonkick
 
 ---
 ## Demo
-[![asciicast](https://asciinema.org/a/qmci5rrWoI8a11UpS8qepcRvh.svg)](https://asciinema.org/a/qmci5rrWoI8a11UpS8qepcRvh)
+[![asciicast](/docs/qmci5rrWoI8a11UpS8qepcRvh.svg)](https://asciinema.org/a/qmci5rrWoI8a11UpS8qepcRvh)
 
 ## References
 - https://github.com/NationalSecurityAgency/ghidra/blob/master/Ghidra/Features/PyGhidra/src/main/py/README.md

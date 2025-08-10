@@ -1,0 +1,504 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1314.03999948" height="1101.3330580000002" font-family="Consolas, Menlo, 'Bitstream Vera Sans Mono', monospace, 'Powerline Symbols'" font-size="14px">
+  <style>
+    .br { font-weight: bold }
+    .fa { fill-opacity: 0.5 }
+    .it { font-style: italic }
+    .un { text-decoration: underline }
+  </style>
+
+  <rect width="100%" height="100%" style="fill: #121314" rx="4" ry="4"></rect>
+
+  <svg x="8.42333333" y="9.333331000000001" class="default-text-fill">
+    <g style="shape-rendering: optimizeSpeed">
+
+
+    </g>
+
+    <text style="fill: #cccccc">
+      <tspan y="0.0">
+        <tspan dy="1em" x="0.0">
+          00107430.c
+        </tspan><tspan x="328.50999987">
+          00109a50::FUN_00109a50.c
+        </tspan><tspan x="547.51666645">
+          0010ade0.c
+        </tspan><tspan x="766.52333303">
+          0010dc80::_obstack_begin_1.c
+        </tspan><tspan x="1052.91666625">
+          00114030.c
+        </tspan>
+      </tspan><tspan y="18.666662000000002">
+        <tspan dy="1em" x="0.0">
+          00107430::FUN_00107430.c
+        </tspan><tspan x="328.50999987">
+          00109b80.c
+        </tspan><tspan x="547.51666645">
+          0010ade0::FUN_0010ade0.c
+        </tspan><tspan x="766.52333303">
+          0010dca0.c
+        </tspan><tspan x="1052.91666625">
+          00114030::FUN_00114030.c
+        </tspan>
+      </tspan><tspan y="37.333324000000005">
+        <tspan dy="1em" x="0.0">
+          00107500.c
+        </tspan><tspan x="328.50999987">
+          00109b80::FUN_00109b80.c
+        </tspan><tspan x="547.51666645">
+          0010ae20.c
+        </tspan><tspan x="766.52333303">
+          0010dca0::_obstack_newchunk.c
+        </tspan><tspan x="1052.91666625">
+          001140a0.c
+        </tspan>
+      </tspan><tspan y="55.99998600000001">
+        <tspan dy="1em" x="0.0">
+          00107500::FUN_00107500.c
+        </tspan><tspan x="328.50999987">
+          00109cf0.c
+        </tspan><tspan x="547.51666645">
+          0010ae20::FUN_0010ae20.c
+        </tspan><tspan x="766.52333303">
+          0010dde0.c
+        </tspan><tspan x="1052.91666625">
+          001140a0::FUN_001140a0.c
+        </tspan>
+      </tspan><tspan y="74.66664800000001">
+        <tspan dy="1em" x="0.0">
+          001075d0.c
+        </tspan><tspan x="328.50999987">
+          00109cf0::FUN_00109cf0.c
+        </tspan><tspan x="547.51666645">
+          0010aed0.c
+        </tspan><tspan x="766.52333303">
+          0010dde0::FUN_0010dde0.c
+        </tspan><tspan x="1052.91666625">
+          00114230.c
+        </tspan>
+      </tspan><tspan y="93.33331000000001">
+        <tspan dy="1em" x="0.0">
+          001075d0::FUN_001075d0.c
+        </tspan><tspan x="328.50999987">
+          00109d10.c
+        </tspan><tspan x="547.51666645">
+          0010aed0::FUN_0010aed0.c
+        </tspan><tspan x="766.52333303">
+          0010de30.c
+        </tspan><tspan x="1052.91666625">
+          00114230::FUN_00114230.c
+        </tspan>
+      </tspan><tspan y="111.99997200000001">
+        <tspan dy="1em" x="0.0">
+          00107620.c
+        </tspan><tspan x="328.50999987">
+          00109d10::FUN_00109d10.c
+        </tspan><tspan x="547.51666645">
+          0010af90.c
+        </tspan><tspan x="766.52333303">
+          0010de30::_obstack_allocated_p.c
+        </tspan><tspan x="1052.91666625">
+          00114780.c
+        </tspan>
+      </tspan><tspan y="130.66663400000002">
+        <tspan dy="1em" x="0.0">
+          00107620::FUN_00107620.c
+        </tspan><tspan x="328.50999987">
+          00109d90.c
+        </tspan><tspan x="547.51666645">
+          0010af90::FUN_0010af90.c
+        </tspan><tspan x="766.52333303">
+          0010de70.c
+        </tspan><tspan x="1052.91666625">
+          00114780::FUN_00114780.c
+        </tspan>
+      </tspan><tspan y="149.33329600000002">
+        <tspan dy="1em" x="0.0">
+          00107670.c
+        </tspan><tspan x="328.50999987">
+          00109d90::FUN_00109d90.c
+        </tspan><tspan x="547.51666645">
+          0010b040.c
+        </tspan><tspan x="766.52333303">
+          0010de70::_obstack_free.c
+        </tspan><tspan x="1052.91666625">
+          001168e0.c
+        </tspan>
+      </tspan><tspan y="167.99995800000002">
+        <tspan dy="1em" x="0.0">
+          00107670::FUN_00107670.c
+        </tspan><tspan x="328.50999987">
+          00109da0.c
+        </tspan><tspan x="547.51666645">
+          0010b040::FUN_0010b040.c
+        </tspan><tspan x="766.52333303">
+          0010df10.c
+        </tspan><tspan x="1052.91666625">
+          001168e0::FUN_001168e0.c
+        </tspan>
+      </tspan><tspan y="186.66662000000002">
+        <tspan dy="1em" x="0.0">
+          00107740.c
+        </tspan><tspan x="328.50999987">
+          00109da0::FUN_00109da0.c
+        </tspan><tspan x="547.51666645">
+          0010b0f0.c
+        </tspan><tspan x="766.52333303">
+          0010df10::_obstack_memory_used.c
+        </tspan><tspan x="1052.91666625">
+          00116a40.c
+        </tspan>
+      </tspan><tspan y="205.33328200000003">
+        <tspan dy="1em" x="0.0">
+          00107740::FUN_00107740.c
+        </tspan><tspan x="328.50999987">
+          00109dc0.c
+        </tspan><tspan x="547.51666645">
+          0010b0f0::FUN_0010b0f0.c
+        </tspan><tspan x="766.52333303">
+          0010df40.c
+        </tspan><tspan x="1052.91666625">
+          00116a40::FUN_00116a40.c
+        </tspan>
+      </tspan><tspan y="223.99994400000003">
+        <tspan dy="1em" x="0.0">
+          00107810.c
+        </tspan><tspan x="328.50999987">
+          00109dc0::FUN_00109dc0.c
+        </tspan><tspan x="547.51666645">
+          0010b190.c
+        </tspan><tspan x="766.52333303">
+          0010df40::FUN_0010df40.c
+        </tspan><tspan x="1052.91666625">
+          00116b20.c
+        </tspan>
+      </tspan><tspan y="242.66660600000003">
+        <tspan dy="1em" x="0.0">
+          00107810::FUN_00107810.c
+        </tspan><tspan x="328.50999987">
+          00109e50.c
+        </tspan><tspan x="547.51666645">
+          0010b190::FUN_0010b190.c
+        </tspan><tspan x="766.52333303">
+          0010e040.c
+        </tspan><tspan x="1052.91666625">
+          00116b20::FUN_00116b20.c
+        </tspan>
+      </tspan><tspan y="261.33326800000003">
+        <tspan dy="1em" x="0.0">
+          00107860.c
+        </tspan><tspan x="328.50999987">
+          00109e50::FUN_00109e50.c
+        </tspan><tspan x="547.51666645">
+          0010b210.c
+        </tspan><tspan x="766.52333303">
+          0010e040::FUN_0010e040.c
+        </tspan><tspan x="1052.91666625">
+          00117490.c
+        </tspan>
+      </tspan><tspan y="279.99993">
+        <tspan dy="1em" x="0.0">
+          00107860::FUN_00107860.c
+        </tspan><tspan x="328.50999987">
+          00109ee0.c
+        </tspan><tspan x="547.51666645">
+          0010b210::FUN_0010b210.c
+        </tspan><tspan x="766.52333303">
+          0010e0c0.c
+        </tspan><tspan x="1052.91666625">
+          00117490::FUN_00117490.c
+        </tspan>
+      </tspan><tspan y="298.66659200000004">
+        <tspan dy="1em" x="0.0">
+          001078b0.c
+        </tspan><tspan x="328.50999987">
+          00109ee0::FUN_00109ee0.c
+        </tspan><tspan x="547.51666645">
+          0010b2c0.c
+        </tspan><tspan x="766.52333303">
+          0010e0c0::FUN_0010e0c0.c
+        </tspan><tspan x="1052.91666625">
+          00118b20.c
+        </tspan>
+      </tspan><tspan y="317.333254">
+        <tspan dy="1em" x="0.0">
+          001078b0::FUN_001078b0.c
+        </tspan><tspan x="328.50999987">
+          00109f10.c
+        </tspan><tspan x="547.51666645">
+          0010b2c0::FUN_0010b2c0.c
+        </tspan><tspan x="766.52333303">
+          0010e1f0.c
+        </tspan><tspan x="1052.91666625">
+          00118b20::FUN_00118b20.c
+        </tspan>
+      </tspan><tspan y="335.99991600000004">
+        <tspan dy="1em" x="0.0">
+          00107980.c
+        </tspan><tspan x="328.50999987">
+          00109f10::FUN_00109f10.c
+        </tspan><tspan x="547.51666645">
+          0010b340.c
+        </tspan><tspan x="766.52333303">
+          0010e1f0::FUN_0010e1f0.c
+        </tspan><tspan x="1052.91666625">
+          00118d90.c
+        </tspan>
+      </tspan><tspan y="354.666578">
+        <tspan dy="1em" x="0.0">
+          00107980::FUN_00107980.c
+        </tspan><tspan x="328.50999987">
+          0010a010.c
+        </tspan><tspan x="547.51666645">
+          0010b340::FUN_0010b340.c
+        </tspan><tspan x="766.52333303">
+          0010e300.c
+        </tspan><tspan x="1052.91666625">
+          00118d90::FUN_00118d90.c
+        </tspan>
+      </tspan><tspan y="373.33324000000005">
+        <tspan dy="1em" x="0.0">
+          00107a50.c
+        </tspan><tspan x="328.50999987">
+          0010a010::FUN_0010a010.c
+        </tspan><tspan x="547.51666645">
+          0010b3f0.c
+        </tspan><tspan x="766.52333303">
+          0010e300::FUN_0010e300.c
+        </tspan><tspan x="1052.91666625">
+          00118da4.c
+        </tspan>
+      </tspan><tspan y="391.999902">
+        <tspan dy="1em" x="0.0">
+          00107a50::FUN_00107a50.c
+        </tspan><tspan x="328.50999987">
+          0010a090.c
+        </tspan><tspan x="547.51666645">
+          0010b3f0::FUN_0010b3f0.c
+        </tspan><tspan x="766.52333303">
+          0010e390.c
+        </tspan><tspan x="1052.91666625">
+          00118da4::_DT_FINI.c
+        </tspan>
+      </tspan><tspan y="410.66656400000005">
+        <tspan dy="1em" x="0.0">
+          00107a90.c
+        </tspan><tspan x="328.50999987">
+          0010a090::FUN_0010a090.c
+        </tspan><tspan x="547.51666645">
+          0010b470.c
+        </tspan><tspan x="766.52333303">
+          0010e390::FUN_0010e390.c
+        </tspan>
+      </tspan><tspan y="429.333226">
+        <tspan dy="1em" x="0.0">
+          00107a90::FUN_00107a90.c
+        </tspan><tspan x="328.50999987">
+          0010a110.c
+        </tspan><tspan x="547.51666645">
+          0010b470::FUN_0010b470.c
+        </tspan><tspan x="766.52333303">
+          0010e430.c
+        </tspan>
+      </tspan><tspan y="447.99988800000006">
+        <tspan dy="1em" x="0.0">
+          00107ad0.c
+        </tspan><tspan x="328.50999987">
+          0010a110::FUN_0010a110.c
+        </tspan><tspan x="547.51666645">
+          0010b510.c
+        </tspan><tspan x="766.52333303">
+          0010e430::FUN_0010e430.c
+        </tspan>
+      </tspan><tspan y="466.66655000000003">
+        <tspan dy="1em" x="0.0">
+          $ cat /tmp/my_top_projectdir/src/ls/0010e430.c
+        </tspan>
+      </tspan><tspan y="503.99987400000003">
+        <tspan dy="1em" x="0.0">
+          void FUN_0010e430(void)
+        </tspan>
+      </tspan><tspan y="541.333198">
+        <tspan dy="1em" x="0.0">
+          {
+        </tspan>
+      </tspan><tspan y="559.99986">
+        <tspan dy="1em" x="16.84666666">
+          undefined4 uVar1;
+        </tspan>
+      </tspan><tspan y="578.6665220000001">
+        <tspan dy="1em" x="16.84666666">
+          undefined8 uVar2;
+        </tspan>
+      </tspan><tspan y="615.999846">
+        <tspan dy="1em" x="16.84666666">
+          uVar1 = DAT_00123088;
+        </tspan>
+      </tspan><tspan y="634.666508">
+        <tspan dy="1em" x="16.84666666">
+          uVar2 = dcgettext(0,&quot;memory exhausted&quot;,5);
+        </tspan>
+      </tspan><tspan y="653.33317">
+        <tspan dy="1em" x="16.84666666">
+          error(uVar1,0,&amp;DAT_0011b563,uVar2);
+        </tspan>
+      </tspan><tspan y="671.9998320000001">
+        <tspan dy="1em" x="168.4666666">
+          /* WARNING: Subroutine does not return */
+        </tspan>
+      </tspan><tspan y="690.6664940000001">
+        <tspan dy="1em" x="16.84666666">
+          abort();
+        </tspan>
+      </tspan><tspan y="709.333156">
+        <tspan dy="1em" x="0.0">
+          }
+        </tspan>
+      </tspan><tspan y="746.6664800000001">
+        <tspan dy="1em" x="0.0" style="fill: #54e1b9">
+          #
+        </tspan>
+      </tspan><tspan y="765.3331420000001">
+        <tspan dy="1em" x="0.0" style="fill: #54e1b9">
+          # Multiple targets can be imported/analyzed at the same time. Deleting the project and adding &#39;/bin/cp&#39;
+        </tspan>
+      </tspan><tspan y="783.999804">
+        <tspan dy="1em" x="0.0" style="fill: #54e1b9">
+          #
+        </tspan>
+      </tspan><tspan y="802.666466">
+        <tspan dy="1em" x="0.0">
+          $ dragonkick -n my_project -o /tmp/my_top_projectdir -cF /bin/ls /bin/cp
+        </tspan>
+      </tspan><tspan y="821.3331280000001">
+        <tspan dy="1em" x="0.0" class="fa" style="fill: #54e1b9">
+          [18:34:04] 
+        </tspan><tspan x="92.65666663">
+          PyGhidra started
+        </tspan>
+      </tspan><tspan y="839.9997900000001">
+        <tspan dy="1em" x="92.65666663">
+          Removing existing project 
+        </tspan><tspan x="311.66333321" style="fill: #dd3c69">
+          &#39;/tmp/my_top_projectdir&#39;
+        </tspan>
+      </tspan><tspan y="858.666452">
+        <tspan dy="1em" x="92.65666663">
+          Setting up project 
+        </tspan><tspan x="252.6999999" style="fill: #4ebf22">
+          &#39;my_project&#39;
+        </tspan><tspan x="362.20333319">
+          in 
+        </tspan><tspan x="387.47333318" style="fill: #4ebf22">
+          &#39;/tmp/my_top_projectdir&#39;
+        </tspan>
+      </tspan><tspan y="877.333114">
+        <tspan dy="1em" x="92.65666663">
+          Using sysroot 
+        </tspan><tspan x="210.58333325" style="fill: #4ebf22">
+          &#39;/&#39;
+        </tspan>
+      </tspan><tspan y="895.9997760000001">
+        <tspan dy="1em" x="92.65666663">
+          Resolving dependencies for targets 
+        </tspan><tspan x="387.47333318" class="br">
+          [
+        </tspan><tspan x="395.89666651" style="fill: #4ebf22">
+          &#39;/bin/ls&#39;
+        </tspan><tspan x="471.70666648">
+          , 
+        </tspan><tspan x="488.55333314" style="fill: #4ebf22">
+          &#39;/bin/cp&#39;
+        </tspan><tspan x="564.36333311" class="br">
+          ]
+        </tspan>
+      </tspan><tspan y="914.6664380000001">
+        <tspan dy="1em" x="92.65666663">
+          Saving binaries under project tree
+        </tspan>
+      </tspan><tspan y="933.3331000000001">
+        <tspan dy="1em" x="92.65666663">
+          Importing 
+        </tspan><tspan x="176.88999993000002" class="br" style="fill: #54e1b9">
+          6
+        </tspan><tspan x="193.73666659">
+          shared object dependencies
+        </tspan>
+      </tspan><tspan y="951.999762">
+        <tspan dy="1em" x="92.65666663">
+          Importing 
+        </tspan><tspan x="176.88999993000002" class="br" style="fill: #54e1b9">
+          2
+        </tspan><tspan x="193.73666659">
+          primary targets
+        </tspan>
+      </tspan><tspan y="970.6664240000001">
+        <tspan dy="1em" x="0.0">
+          ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+        </tspan>
+      </tspan><tspan y="989.3330860000001">
+        <tspan dy="1em" x="0.0">
+          │ 
+        </tspan><tspan x="16.84666666" style="fill: #4ebf22">
+          ⠦
+        </tspan><tspan x="33.69333332" style="fill: #4ebf22">
+          Imported 
+        </tspan><tspan x="109.50333329" class="br" style="fill: #4ebf22">
+          libselinux.so.1
+        </tspan><tspan x="244.27666657" style="fill: #FF005F">
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━╸
+        </tspan><tspan x="471.70666648" style="fill: #3A3A3A">
+          ━━━━━━━━━━━━━
+        </tspan><tspan x="589.6333331" style="fill: #4ebf22">
+          4/6
+        </tspan><tspan x="623.32666642" style="fill: #ddaf3c">
+          0:00:03
+        </tspan><tspan x="1288.76999949">
+          │
+        </tspan>
+      </tspan><tspan y="1007.9997480000001">
+        <tspan dy="1em" x="0.0">
+          ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+        </tspan>
+      </tspan><tspan y="1026.66641">
+        <tspan dy="1em" x="0.0">
+          ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+        </tspan>
+      </tspan><tspan y="1045.3330720000001">
+        <tspan dy="1em" x="0.0">
+          │ 
+        </tspan><tspan x="16.84666666" style="fill: #4ebf22">
+          ⠇
+        </tspan><tspan x="33.69333332" style="fill: #4ebf22">
+          Importing 
+        </tspan><tspan x="117.92666662" class="br" style="fill: #4ebf22">
+          libc.so.6
+        </tspan><tspan x="1288.76999949">
+          │
+        </tspan>
+      </tspan><tspan y="1063.999734">
+        <tspan dy="1em" x="0.0">
+          ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+        </tspan>
+      </tspan>
+    </text>
+  </svg>
+
+  <g transform="translate(-40 -40)">
+    <svg x="50%" y="50%" width="80" height="80">
+      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000.0 1000.0" style="filter: drop-shadow(0px 0px 5px rgba(0, 0, 0, 0.4))">
+  <defs>
+    <mask id="small-triangle-mask">
+      <rect width="100%" height="100%" fill="white"></rect>
+      <polygon points="700.0 500.0, 400.00000000000006 326.7949192431122, 399.9999999999999 673.2050807568877" fill="black">
+      </polygon>
+    </mask>
+  </defs>
+  <polygon points="1000.0 500.0, 250.0000000000001 66.98729810778059, 249.99999999999977 933.0127018922192" mask="url(#small-triangle-mask)" fill="white">
+  </polygon>
+  <polyline points="673.2050807568878 400.0, 326.7949192431123 600.0" stroke="white" stroke-width="90">
+  </polyline>
+</svg>
+    </svg>
+  </g>
+</svg>
