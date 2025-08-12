@@ -549,7 +549,7 @@ def main() -> Optional[int]:
             return EX_UNAVAILABLE
 
         if options.start_ghidra:
-            subprocess.run([ghidra_install_dir / "ghidraRun", ghidra_project])
+            subprocess.run([ghidra_install_dir / "ghidraRun", ghidra_project.resolve()])
 
         return 0
 
