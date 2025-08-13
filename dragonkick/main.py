@@ -19,7 +19,7 @@ import pyghidra
 import shutil
 import subprocess
 import sys
-import time
+import zipfile
 
 from contextlib import contextmanager
 from importlib.metadata import metadata
@@ -29,7 +29,7 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.progress import Progress, TextColumn, BarColumn, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 from rich.status import Status
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 
 EX_DATAERR = 65
@@ -75,6 +75,42 @@ def SetFunctionComment(function, comment, listing):
 
     listing.setComment(function.getEntryPoint(),
                        CodeUnit.PLATE_COMMENT, comment)
+
+
+def ZipProject(project_dir: Path, project_name: str) -> Path:
+    if not project_dir.is_dir():
+        raise ValueError(f"'{project_dir}' is not a valid project directory.")
+
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+    )
+    progress_panel = Panel(progress)
+    live_group = Group(progress_panel)
+
+    with Live(live_group, refresh_per_second=10) as live:
+        project_zip = project_dir.parent / f"{project_name}.zip"
+
+        with zipfile.ZipFile(project_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
+            project_files = [x for x in project_dir.rglob("*")]
+            task = progress.add_task(
+                "[green]Zipping project directory...", total=len(project_files))
+            for file in project_files:
+                arcname = file.relative_to(project_dir)
+                zipf.write(file, arcname)
+                progress.update(
+                    task, description=f"[green]Added {file.name} to {project_zip.name}")
+                progress.update(task, advance=1)
+
+        progress.update(
+            task, description="[green]Project zipped")
+        progress.stop()
+        live.refresh()
+
+    return project_zip.resolve()
 
 
 def GetParser() -> argparse.ArgumentParser:
@@ -139,7 +175,6 @@ def GetParser() -> argparse.ArgumentParser:
         "--project-dir",
         action=lddtree._NormalizePathAction,
         type=Path,
-        required=True,
         help="project output directory",
     )
 
@@ -157,6 +192,14 @@ def GetParser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
         help="open project in Ghidra after kickstart",
+    )
+
+    project_group.add_argument(
+        "-z",
+        "--zip-project",
+        action="store_true",
+        default=False,
+        help="create a zip archive of the project tree",
     )
 
     analysis_group = parser.add_argument_group("Analysis options")
@@ -271,7 +314,12 @@ def main() -> Optional[int]:
         log_error(f"{sysroot} does not exists")
         return EX_NOINPUT
 
-    project_dir = Path(options.project_dir)
+    project_name = options.project_name
+
+    if options.project_dir is not None:
+        project_dir = Path(options.project_dir)
+    else:
+        project_dir = Path(project_name)
 
     if options.copy_to_project:
         ldd_dir = project_dir
@@ -284,8 +332,8 @@ def main() -> Optional[int]:
 
     src_dir = project_dir / "src"
 
-    ghidra_project = project_dir / options.project_name / \
-        f"{options.project_name}.gpr"
+    ghidra_project = project_dir / project_name / \
+        f"{project_name}.gpr"
 
     if options.ghidra_install_dir is not None:
         os.environ["GHIDRA_INSTALL_DIR"] = str(options.ghidra_install_dir)
@@ -307,10 +355,13 @@ def main() -> Optional[int]:
                 return EX_SOFTWARE
 
     if pyghidra.started():
+        from ghidra.framework import Application
         console.log("PyGhidra started")
+        console.log(
+            f"Using Ghidra {Application.getApplicationVersion()} from {ghidra_install_dir}")
 
         if project_dir.exists() and options.force_remove:
-            console.log(f"Removing existing project [red]'{project_dir}'")
+            console.log(f"Removing existing project [red]{project_dir}")
             shutil.rmtree(project_dir)
 
         if ghidra_project.exists() and not options.force_import:
@@ -319,13 +370,13 @@ def main() -> Optional[int]:
             return EX_CANTCREAT
 
         console.log(
-            f"Setting up project '{options.project_name}' in '{project_dir}'")
+            f"Setting up project '{project_name}' in {project_dir.resolve()}")
         project_dir.mkdir(exist_ok=True)
         target_dir.mkdir(exist_ok=True)
         lib_dir.mkdir(exist_ok=True)
         src_dir.mkdir(exist_ok=True)
 
-        console.log(f"Using sysroot '{options.sysroot}'")
+        console.log(f"Using sysroot {options.sysroot}")
 
         if options.remove_existing_binaries:
             deps = [x for x in lib_dir.iterdir() if x.is_file()]
@@ -358,18 +409,21 @@ def main() -> Optional[int]:
             lddtree_args.extend(options.targets)
             try:
                 lddtree.main(lddtree_args)
-            except Exception:
-                log_error(f"Unknown exception from lddtree")
+            except Exception as e:
+                log_error(f"lddtree: {e}")
                 return EX_SOFTWARE
 
         deps = [x for x in lib_dir.iterdir() if x.is_file()]
         targets = [x for x in target_dir.iterdir() if x.is_file()]
 
         if options.copy_to_project:
-            console.log(f"Saving binaries under project tree")
+            console.log("Saving binaries under project tree")
+
+        if options.skip_target_analysis:
+            console.log("[yellow]Skipping target analysis")
 
         if options.skip_dependency_import:
-            console.log(f"Not importing any target dependencies")
+            console.log("[yellow]Skipping target dependency import")
         else:
             console.log(f"Importing {len(deps)} shared object dependencies")
             if options.verbose:
@@ -409,7 +463,7 @@ def main() -> Optional[int]:
                         status.update(
                             f"[green]Importing [bold]{dep.name}[/bold]")
 
-                    with pyghidra.open_program(dep, analyze=options.do_dependency_analysis, project_location=project_dir, project_name=options.project_name, nested_project_location=True) as flat_api:
+                    with pyghidra.open_program(dep, analyze=options.do_dependency_analysis, project_location=project_dir, project_name=project_name, nested_project_location=True) as flat_api:
                         from ghidra.program.util import GhidraProgramUtilities
                         program = flat_api.getCurrentProgram()
 
@@ -460,8 +514,10 @@ def main() -> Optional[int]:
                     status.update(
                         f"[green]:dragon: Analyzing [bold]{target.name}[/bold] :dragon:")
 
-                with pyghidra.open_program(target, analyze=analyze_target, project_location=project_dir, project_name=options.project_name, nested_project_location=True) as flat_api:
+                with pyghidra.open_program(target, analyze=analyze_target, project_location=project_dir, project_name=project_name, nested_project_location=True) as flat_api:
                     from ghidra.program.util import GhidraProgramUtilities
+
+                    program = flat_api.getCurrentProgram()
 
                     progress.update(
                         task, description=f"[green]Imported [bold]{target.name}[/bold]")
@@ -474,8 +530,6 @@ def main() -> Optional[int]:
                             f"[green]Imported [bold]{target.name}[/bold], creation_date={program.getCreationDate()}, language_id={program.getLanguageID()}")
 
                     progress.update(task, advance=1)
-
-                    program = flat_api.getCurrentProgram()
 
                     if options.do_target_decompilation:
                         function_manager = program.getFunctionManager()
@@ -510,21 +564,21 @@ def main() -> Optional[int]:
                                 function, signature, code, filename, symlink = DecompileFunction(
                                     f, decompiler)
                                 decomp_progress.update(
-                                    task, description=f"[green]Decompiled [bold]{f.getName()}[/bold]")
+                                    decomp_task, description=f"[green]Decompiled [bold]{f.getName()}[/bold]")
 
                                 if signature is not None:
                                     function_src = target_src / filename
                                     function_src.open("w").write(code)
                                     function_link = target_src / symlink
-                                    function_link.symlink_to(function_src)
+                                    function_link.symlink_to(filename)
                             else:
                                 decomp_progress.update(
-                                    task, description=f"[green]Skipping thunk [bold]{f.getName()}[/bold]")
+                                    decomp_task, description=f"[green]Skipping thunk [bold]{f.getName()}[/bold]")
 
-                            decomp_progress.update(task, advance=1)
+                            decomp_progress.update(decomp_task, advance=1)
 
                         decomp_progress.update(
-                            task, description=f"[green]Decompilation complete")
+                            decomp_task, description=f"[green]Decompilation complete")
                         decomp_progress.stop()
 
                         target_repo.git.add(all=True)
@@ -541,15 +595,24 @@ def main() -> Optional[int]:
             status.stop()
             live.refresh()
 
+        if options.zip_project:
+            try:
+                console.log(
+                    f"Project zip saved {ZipProject(project_dir, project_name)}")
+            except Exception as e:
+                log_error(f"Failed to zip {project_dir}")
+                log_error(f"{e}")
+
         if ghidra_project.exists():
             console.log(
-                f":dragon: The project is ready to be opened in Ghidra with '{ghidra_project}' :dragon:")
+                f"The project is ready to be opened with Ghidra {ghidra_project.resolve()}")
         else:
             log_error(f"Ghidra project {ghidra_project} not found")
             return EX_UNAVAILABLE
 
         if options.start_ghidra:
-            subprocess.run([ghidra_install_dir / "ghidraRun", ghidra_project.resolve()])
+            subprocess.run([ghidra_install_dir / "ghidraRun",
+                           ghidra_project.resolve()])
 
         return 0
 
