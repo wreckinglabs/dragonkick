@@ -8,11 +8,10 @@
 A simple colorful tool to kickstart Ghidra projects from the command line.
 """
 
-from . import lddtree
-from . import TMP_DIR
-
 import argparse
+import cle
 import git
+import glob
 import io
 import os
 import pyghidra
@@ -29,7 +28,10 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.progress import Progress, TextColumn, BarColumn, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 from rich.status import Status
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
+
+if TYPE_CHECKING:
+    from ghidra.ghidra_builtins import *
 
 
 EX_DATAERR = 65
@@ -113,6 +115,33 @@ def ZipProject(project_dir: Path, project_name: str) -> Path:
     return project_zip.resolve()
 
 
+def ResolveWithRoot(path_to_resolve: Path, sysroot: Path) -> Path:
+    current_path = Path(path_to_resolve)
+    # A limit to prevent infinite loops from circular symlinks
+    for _ in range(100):
+        if not current_path.is_symlink():
+            # Not a symlink, we've found our final path
+            return current_path
+
+        # It's a symlink, read its destination
+        link_destination = current_path.readlink()
+
+        if link_destination.is_absolute():
+            # Absolute link: The path is relative to the sysroot
+            # e.g., link points to '/usr/bin/real', we want sysroot / 'usr/bin/real'
+            next_path = sysroot / link_destination.relative_to(os.path.sep)
+        else:
+            # Relative link: The path is relative to the symlink's parent directory
+            # e.g., link is in '.../sbin/' and points to '../bin/real'
+            next_path = current_path.parent / link_destination
+
+        # Normalize the path (e.g., collapse '..' components)
+        current_path = Path(os.path.normpath(next_path))
+
+    raise RecursionError(
+        "Too many symlink levels; circular symlink suspected.")
+
+
 def GetParser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -173,7 +202,6 @@ def GetParser() -> argparse.ArgumentParser:
     project_group.add_argument(
         "-o",
         "--project-dir",
-        action=lddtree._NormalizePathAction,
         type=Path,
         help="project output directory",
     )
@@ -236,10 +264,16 @@ def GetParser() -> argparse.ArgumentParser:
 
     path_group = parser.add_argument_group("Path options")
     path_group.add_argument(
+        "-I",
+        "--ignore-missing",
+        action="store_true",
+        default=False,
+        help="ignore missing target file",
+    )
+    path_group.add_argument(
         "-R",
         "--sysroot",
-        action=lddtree._NormalizePathAction,
-        default="/",
+        default=os.path.sep,
         type=Path,
         help="search for all targets/dependencies under SYSROOT",
     )
@@ -247,7 +281,6 @@ def GetParser() -> argparse.ArgumentParser:
     path_group.add_argument(
         "-G",
         "--ghidra-install-dir",
-        action=lddtree._NormalizePathAction,
         default=None,
         type=Path,
         help="Ghidra installation directory",
@@ -278,11 +311,10 @@ def capture_ghidra_output():
 
 
 @contextmanager
-def capture_lddtree_output():
+def capture_cle_output(verbose=False):
     original_stdout = sys.stdout
     original_stderr = sys.stderr
     captured_output = io.StringIO()
-    prefix = "dragonkick: "
 
     try:
         sys.stdout = captured_output
@@ -293,47 +325,91 @@ def capture_lddtree_output():
         sys.stderr = original_stderr
 
         output = captured_output.getvalue()
-        if output:
-            output = output.replace(prefix, "").strip()
-            console.rule("[bold red]Captured lddtree Output[/]")
-            console.log(output)
+        if output and verbose:
+            console.rule("[bold red]Captured cle.Loader Output[/]")
+            console.log(output.strip())
             console.rule()
 
 
-def log_error(message):
+def log_error(message: str):
     console.log(f"[bold red]ERROR:[/] {message}")
 
 
-def main() -> Optional[int]:
-    parser = GetParser()
-    options = parser.parse_args(sys.argv[1:])
+def log_warning(message: str):
+    console.log(f"[bold yellow]WARNING:[/] {message}")
 
-    sysroot = Path(options.sysroot)
 
-    if not sysroot.exists():
-        log_error(f"{sysroot} does not exists")
+def main(options=None) -> Optional[int]:
+    if options is None:
+        parser = GetParser()
+        options = parser.parse_args(sys.argv[1:])
+
+    sysroot = Path(os.path.normpath(options.sysroot)).resolve()
+
+    if not sysroot.is_dir():
+        log_error(f"Sysroot {sysroot} does not exist")
         return EX_NOINPUT
+
+    targets = set()
+    for target in options.targets:
+        target = os.path.normpath(target)
+        if sysroot == Path(os.path.sep):
+            target_path = Path(target).resolve()
+        else:
+            target_path = sysroot / target.lstrip(".").lstrip(os.path.sep)
+        target_ex = glob.glob(str(target_path))
+        for ex in target_ex:
+            target_path = ResolveWithRoot(ex, sysroot)
+            if not target_path.is_file():
+                if options.ignore_missing:
+                    log_warning(
+                        f"Target {target_path} does not exist, skipping")
+                    continue
+                log_error(f"Target {target_path} does not exist")
+                return EX_NOINPUT
+            targets.add(target_path)
 
     project_name = options.project_name
 
     if options.project_dir is not None:
-        project_dir = Path(options.project_dir)
+        project_dir = Path(os.path.normpath(options.project_dir))
     else:
         project_dir = Path(project_name)
 
-    if options.copy_to_project:
-        ldd_dir = project_dir
-        target_dir = ldd_dir / "target"
-        lib_dir = ldd_dir / "lib"
-    else:
-        ldd_dir = TMP_DIR
-        target_dir = ldd_dir / "target"
-        lib_dir = ldd_dir / "lib"
-
+    bin_dir = project_dir / "bin"
+    lib_dir = project_dir / "lib"
     src_dir = project_dir / "src"
 
     ghidra_project = project_dir / project_name / \
         f"{project_name}.gpr"
+
+    if project_dir.is_dir() and options.force_remove:
+        console.log(
+            f"[red]Removing existing project [bold]{project_dir.resolve()}[/bold]")
+        shutil.rmtree(project_dir)
+    elif options.remove_existing_binaries:
+        console.log("[red]Removing existing binaries from project")
+
+        if lib_dir.is_dir():
+            for lib in lib_dir.iterdir():
+                if lib.is_file():
+                    lib.unlink()
+                    if options.verbose:
+                        console.log(
+                            f"Removed previous dependency [bold]{lib.name}[/bold]")
+
+        if bin_dir.is_dir():
+            for target in bin_dir.iterdir():
+                if target.is_file():
+                    target.unlink()
+                    if options.verbose:
+                        console.log(
+                            f"Removed previous target [bold]{target.name}[/bold]")
+
+    if ghidra_project.is_file() and not options.force_import:
+        log_error(
+            f"Ghidra project {ghidra_project.resolve()} already exists, use '-f' to force re-importing binaries")
+        return EX_CANTCREAT
 
     if options.ghidra_install_dir is not None:
         os.environ["GHIDRA_INSTALL_DIR"] = str(options.ghidra_install_dir)
@@ -347,11 +423,13 @@ def main() -> Optional[int]:
         with capture_ghidra_output():
             try:
                 pyghidra.start()
-            except ValueError:
+            except ValueError as e:
                 log_error(f"Starting Ghidra from {ghidra_install_dir}")
+                log_error(f"{e}")
                 return EX_UNAVAILABLE
-            except Exception:
+            except Exception as e:
                 log_error(f"Starting Ghidra from {ghidra_install_dir}")
+                log_error(f"{e}")
                 return EX_SOFTWARE
 
     if pyghidra.started():
@@ -360,85 +438,77 @@ def main() -> Optional[int]:
         console.log(
             f"Using Ghidra {Application.getApplicationVersion()} from {ghidra_install_dir}")
 
-        if project_dir.exists() and options.force_remove:
-            console.log(f"Removing existing project [red]{project_dir}")
-            shutil.rmtree(project_dir)
-
-        if ghidra_project.exists() and not options.force_import:
-            log_error(
-                f"Ghidra project {ghidra_project} already exists, use '-f' to force re-importing binaries")
-            return EX_CANTCREAT
-
         console.log(
             f"Setting up project '{project_name}' in {project_dir.resolve()}")
         project_dir.mkdir(exist_ok=True)
-        target_dir.mkdir(exist_ok=True)
+        bin_dir.mkdir(exist_ok=True)
         lib_dir.mkdir(exist_ok=True)
         src_dir.mkdir(exist_ok=True)
 
-        console.log(f"Using sysroot {options.sysroot}")
+        console.log(f"Using sysroot {sysroot}")
 
-        if options.remove_existing_binaries:
-            deps = [x for x in lib_dir.iterdir() if x.is_file()]
-            targets = [x for x in target_dir.iterdir() if x.is_file()]
-
-            if len(deps) or len(targets):
-                console.log(f"[red]Removing existing binaries from project")
-
-            for lib in lib_dir.iterdir():
-                if lib.is_file():
-                    lib.unlink()
-                    if options.verbose:
-                        console.log(
-                            f"Removed previous dependency [red]'{lib}'[/red]")
-
-            for target in target_dir.iterdir():
-                if target.is_file():
-                    target.unlink()
-                    if options.verbose:
-                        console.log(
-                            f"Removed previous target [red]'{target}'[/red]")
-
-        if not options.skip_dependency_import:
-            console.log(
-                f"Resolving dependencies for targets {options.targets}")
-
-        with capture_lddtree_output():
-            lddtree_args = ["-R", str(sysroot), "--copy-to-tree",
-                            str(ldd_dir), "--bindir", "/target", "--libdir", "/lib"]
-            lddtree_args.extend(options.targets)
-            try:
-                lddtree.main(lddtree_args)
-            except Exception as e:
-                log_error(f"lddtree: {e}")
-                return EX_SOFTWARE
-
-        deps = [x for x in lib_dir.iterdir() if x.is_file()]
-        targets = [x for x in target_dir.iterdir() if x.is_file()]
+        if sysroot == Path(os.path.sep):
+            use_system_libs = True
+            ld_path = []
+        else:
+            use_system_libs = False
+            ld_path = [
+                sysroot,
+                sysroot / "lib",
+                sysroot / "lib64",
+                sysroot / "usr" / "lib",
+                sysroot / "usr" / "lib64",
+            ]
 
         if options.copy_to_project:
             console.log("Saving binaries under project tree")
 
-        if options.skip_target_analysis:
-            console.log("[yellow]Skipping target analysis")
-
         if options.skip_dependency_import:
             console.log("[yellow]Skipping target dependency import")
         else:
-            console.log(f"Importing {len(deps)} shared object dependencies")
-            if options.verbose:
-                for lib in lib_dir.iterdir():
-                    if lib.is_file():
-                        console.log(f"Importing dependency '{lib}'")
+            console.log(
+                f"Resolving dependency for targets {options.targets}")
 
-        console.log(f"Importing {len(targets)} primary targets")
-        if options.verbose:
-            for target in target_dir.iterdir():
-                if target.is_file():
-                    console.log(f"Importing target '{target}'")
+        deps = set()
+
+        for target in list(targets)[:]:
+            with capture_cle_output(options.verbose):
+                try:
+                    ld = cle.Loader(target, auto_load_libs=True,
+                                    use_system_libs=use_system_libs, ld_path=ld_path)
+                except Exception as e:
+                    log_error(f"{e}")
+                    targets.remove(target)
+                    continue
+
+                for k, obj in ld.shared_objects.items():
+                    abs_obj_path = Path(obj.binary).resolve()
+                    if abs_obj_path.is_file():
+                        if obj.is_main_bin:
+                            if options.verbose:
+                                console.log(
+                                    f"Target {abs_obj_path}: {obj.arch}, {obj.linking}, pic={obj.pic}, execstack={obj.execstack}")
+                            if options.copy_to_project:
+                                shutil.copy2(abs_obj_path, bin_dir)
+                        else:
+                            if not options.skip_dependency_import:
+                                if options.verbose:
+                                    console.log(
+                                        f"Resolved [bold]{k}[/bold] to {abs_obj_path}")
+                                if options.copy_to_project:
+                                    shutil.copy2(abs_obj_path, lib_dir)
+                                deps.add(abs_obj_path)
+
+        if not options.skip_dependency_import:
+            console.log(
+                f"Importing {len(deps)} shared object dependencies")
+        console.log(f"Importing {len(targets)} targets")
+
+        if options.skip_target_analysis:
+            console.log("[yellow]Skipping target analysis")
 
         if not targets:
-            log_error(f"No primary target to import")
+            log_error("No target to import")
             return EX_NOINPUT
 
         if not options.skip_dependency_import and deps:
@@ -464,7 +534,6 @@ def main() -> Optional[int]:
                             f"[green]Importing [bold]{dep.name}[/bold]")
 
                     with pyghidra.open_program(dep, analyze=options.do_dependency_analysis, project_location=project_dir, project_name=project_name, nested_project_location=True) as flat_api:
-                        from ghidra.program.util import GhidraProgramUtilities
                         program = flat_api.getCurrentProgram()
 
                         if options.do_dependency_analysis:
@@ -480,9 +549,9 @@ def main() -> Optional[int]:
                     progress.update(task, advance=1)
 
                 progress.update(
-                    task, description=f"[green]Dependencies import complete")
+                    task, description="[green]Dependencies import complete")
                 progress.stop()
-                status.update(f"[green]All dependencies imported!")
+                status.update("[green]All dependencies imported!")
                 status.stop()
                 live.refresh()
 
@@ -503,8 +572,8 @@ def main() -> Optional[int]:
         with Live(live_group, refresh_per_second=10) as live:
             task = progress.add_task(
                 "[green]Importing targets...", total=len(targets))
-            for target in targets:
 
+            for target in targets:
                 if options.skip_target_analysis:
                     analyze_target = False
                     status.update(
@@ -515,8 +584,6 @@ def main() -> Optional[int]:
                         f"[green]:dragon: Analyzing [bold]{target.name}[/bold] :dragon:")
 
                 with pyghidra.open_program(target, analyze=analyze_target, project_location=project_dir, project_name=project_name, nested_project_location=True) as flat_api:
-                    from ghidra.program.util import GhidraProgramUtilities
-
                     program = flat_api.getCurrentProgram()
 
                     progress.update(
@@ -568,7 +635,9 @@ def main() -> Optional[int]:
 
                                 if signature is not None:
                                     function_src = target_src / filename
-                                    function_src.open("w").write(code)
+                                    with open(function_src, "w") as fh:
+                                        fh.write(code)
+
                                     function_link = target_src / symlink
                                     function_link.symlink_to(filename)
                             else:
@@ -578,7 +647,7 @@ def main() -> Optional[int]:
                             decomp_progress.update(decomp_task, advance=1)
 
                         decomp_progress.update(
-                            decomp_task, description=f"[green]Decompilation complete")
+                            decomp_task, description="[green]Decompilation complete")
                         decomp_progress.stop()
 
                         target_repo.git.add(all=True)
@@ -589,9 +658,9 @@ def main() -> Optional[int]:
                     status_panel.renderable = status
 
             progress.update(
-                task, description=f"[green]Targets import complete")
+                task, description="[green]Targets import complete")
             progress.stop()
-            status.update(f"[green]All targets imported!")
+            status.update("[green]All targets imported!")
             status.stop()
             live.refresh()
 
@@ -603,7 +672,7 @@ def main() -> Optional[int]:
                 log_error(f"Failed to zip {project_dir}")
                 log_error(f"{e}")
 
-        if ghidra_project.exists():
+        if ghidra_project.is_file():
             console.log(
                 f"The project is ready to be opened with Ghidra {ghidra_project.resolve()}")
         else:

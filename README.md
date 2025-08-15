@@ -22,7 +22,6 @@ pipx install git+https://github.com/wreckinglabs/dragonkick
 
 ## References
 - https://github.com/NationalSecurityAgency/ghidra/blob/master/Ghidra/Features/PyGhidra/src/main/py/README.md
-- https://github.com/gentoo/pax-utils/blob/master/lddtree.py
 
 ---
 ## TODOs
@@ -30,7 +29,3 @@ pipx install git+https://github.com/wreckinglabs/dragonkick
 - Allow running other Ghidra scripts with the analysis
 - Support for non-ELF binaries
 - Better decompiled code source management (e.g. tracking function rename/retype etc.)
-
-
-
-

@@ -1,4 +1,5 @@
+cle
+ghidra-stubs
 gitpython
-pyelftools
 pyghidra
 rich

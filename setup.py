@@ -20,7 +20,7 @@ setuptools.setup(
     version="0.1.0",
     author="broomd0g",
     author_email="broomd0g@wreckinglabs.org",
-    description="A colorful tool to kickstart Ghidra projects from the command line",
+    description="A simple colorful tool to kickstart Ghidra projects from the command line",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/wreckinglabs/dragonkick",
